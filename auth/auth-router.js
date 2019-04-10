@@ -1,8 +1,22 @@
 const router = require('express').Router();
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const secrets = require('../config/secrets.js')
 
 const Users = require('../users/users-model.js');
 
+function generateToken(user){
+  const payload = {
+    subject: user.id,
+    username: user.username
+   // roles: ['Student']
+}
+
+const options = {
+  expiresIn: '1d'
+}
+return jwt.sign(payload, secrets.jwtSecrets, options)
+}
 // for endpoints beginning with /api/auth
 router.post('/register', (req, res) => {
   let user = req.body;
@@ -25,11 +39,14 @@ router.post('/login', (req, res) => {
     .first()
     .then(user => {
       if (user && bcrypt.compareSync(password, user.password)) {
+        const token = generateToken(user);
+
         res.status(200).json({
-          message: `Welcome ${user.username}!`,
+          message: `Welcome ${user.username}! we have a token`,
+          token
         });
       } else {
-        res.status(401).json({ message: 'Invalid Credentials' });
+        res.status(401).json({ message: 'Invalid Credentials', token });
       }
     })
     .catch(error => {
